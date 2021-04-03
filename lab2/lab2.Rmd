@@ -1,0 +1,133 @@
+---
+title: "Desicion tree assignment"
+author: "Oleksii Yehorchenkov"
+date: "30 11 2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+This assignment is based on materials from [mlcourse.ai] (https://mlcourse.ai)
+
+## Building a decision tree for predicting heart diseases
+
+Let's read the data on heart diseases. The dataset can be downloaded from the course repo from [here](https://www.dropbox.com/s/kr1d9vsnax5wxfo/mlbootcamp5_train.csv?dl=0).
+
+**Problem**
+
+Predict presence or absence of cardiovascular disease (CVD) using the patient examination results.
+
+**Data description**
+
+There are 3 types of input features:
+
+- *Objective*: factual information;
+- *Examination*: results of medical examination;
+- *Subjective*: information given by the patient.
+
+| Feature | Variable Type | Variable      | Value Type |
+|---------|--------------|---------------|------------|
+| Age | Objective Feature | age | int (days) |
+| Height | Objective Feature | height | int (cm) |
+| Weight | Objective Feature | weight | float (kg) |
+| Gender | Objective Feature | gender | categorical code |
+| Systolic blood pressure | Examination Feature | ap_hi | int |
+| Diastolic blood pressure | Examination Feature | ap_lo | int |
+| Cholesterol | Examination Feature | cholesterol | 1: normal, 2: above normal, 3: well above normal |
+| Glucose | Examination Feature | gluc | 1: normal, 2: above normal, 3: well above normal |
+| Smoking | Subjective Feature | smoke | binary |
+| Alcohol intake | Subjective Feature | alco | binary |
+| Physical activity | Subjective Feature | active | binary |
+| Presence or absence of cardiovascular disease | Target Variable | cardio | binary |
+
+All of the dataset values were collected at the moment of medical examination.
+
+## Task
+
+Read the data
+```{r}
+> library(readr)
+> mlbootcamp5_train_1_ <- read_delim("Downloads/mlbootcamp5_train.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+```
+
+Transform the features: 
+```{r}
+#create "age in years" (`age_years`)dividing age by 365.25 and taking floor ($\lfloor{x}\rfloor$ is the largest integer that is less than or equal to $x$)
+> age_years <- floor(mlbootcamp5_train_1_$age/365.25)
+> head(age_years)
+#remove "age" feature
+> mlbootcamp5_train_1_[ , !(names(mlbootcamp5_train_1_) %in% c("age"))]
+#transfrom `cholesterol` and `gluc` to factor
+> mlbootcamp5_train_1_$cholesterol <- as.factor(mlbootcamp5_train_1_$cholesterol)
+> mlbootcamp5_train_1_$gluc <- as.factor(mlbootcamp5_train_1_$gluc)
+```
+
+Split data into train and test parts in the proportion of 7/3.
+The target feature is `cardio`
+
+```{r}
+> install.packages('caret')
+> library(caret)
+> index <- createDataPartition(mlbootcamp5_train_1_$cardio, p = 0.7, list = FALSE)
+> train <- mlbootcamp5_train_1_[index, ]
+> test <- mlbootcamp5_train_1_[-index,]
+```
+
+Train a decision tree on the dataset `training` with **max depth equal to 3**. For setting this parameter use function `rpart::rpart.control`. Use default cross calidation parameters.
+
+```{r}
+> install.packages('rpart')
+> library(rpart)
+> training <- train(cardio~ ., data = train, method = "rpart", control = rpart.control(maxdepth = 3))
+# Your code here
+```
+
+Plot final tree with `rattle` library
+
+```{r}
+> install.packages('RGtk2')
+> install.packages("rattle", dependencies = TRUE)
+> fancyRpartPlot(training)
+```
+
+What is the accuracy of prediction on test data?
+
+```{r}
+pred <- predict(training, test)
+> x <- as.integer(pred)
+> y <- test$cardio
+> l <- union(x, y)
+> t <- table(factor(x, l), factor(y, l))
+accuracy <- confusionMatrix(t)
+```
+Now set cross validation parameters: `method = "cv"`, `number = 5`. Tree parameters set to default.
+> trControl <- trainControl(method = "cv", number = 5)
+> training <- train(cardio ~ ., data = train, method = "rpart", trControl = trControl)
+```{r}
+# Your code here
+```
+
+Plot final tree with `rattle` library
+
+```{r}
+# Your code here
+> fancyRpartPlot(training)
+```
+
+What is the accuracy of prediction on test data?
+
+```{r}
+> pred <- predict(training, test)
+> x <- as.integer(pred)
+> y <- test$cardio
+> l <- union(x, y)
+> t <- table(factor(x, l), factor(y, l))
+confusionMatrix(t)
+```
+Does the accuracy became better or not?
+
+#accuracy_1: 0.5008, accuracy_2: 0.5008. So the accuracy didn't seem to change.
